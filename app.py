@@ -5,8 +5,20 @@ import certifi
 ca = certifi.where()
 from dotenv import load_dotenv
 load_dotenv()
-mongo_db_url = os.getenv("MONGODB_URL_KEY")
+
+DAGSHUB_TOKEN = os.getenv("DAGSHUB_TOKEN")
+print(DAGSHUB_TOKEN)
+if DAGSHUB_TOKEN:
+    import dagshub
+    dagshub.auth.add_app_token(DAGSHUB_TOKEN)
+    print("DagsHub authentication successful.")
+else:
+    print("WARNING: No DagsHub token found! Ensure you set DAGSHUB_TOKEN.")
+
+dagshub.init(repo_owner='sidgarlapati', repo_name='networksecurity', mlflow=True)
+mongo_db_url = os.getenv("MONGO_DB_URL")
 print(mongo_db_url)
+
 import pymongo
 from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.logging.logger import logging
