@@ -6,6 +6,7 @@ certifi
 pymongo
 scikit-learn
 mlflow
+dill
 pyyaml
 dagshub
 fastapi
