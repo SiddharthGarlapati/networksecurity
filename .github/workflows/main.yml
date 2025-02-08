@@ -35,8 +35,12 @@ jobs:
                 sudo apt-get update
                 sudo apt-get install -y jq unzip
 
+            - name: Free Disk Space (Before Building Image)
+              run: |
+                docker system prune -a --volumes -f
+
             - name: Configure AWS credentials
-              uses: aws-action/configure-aws-credentials@v1
+              uses: aws-actions/configure-aws-credentials@v1
               with:
                 aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
@@ -46,7 +50,7 @@ jobs:
               id: login-ecr
               uses: aws-actions/amazon-ecr-login@v1 
             
-            - name: Build,tag and Push image to ECR
+            - name: Build, Tag, and Push Image to ECR
               id: build-image
               env: 
                 ECR_REGISTRY: ${{steps.login-ecr.outputs.registry }} 
@@ -72,13 +76,17 @@ jobs:
             aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
             aws-region: ${{ secrets.AWS_REGION }}
 
-        - name: Login to amazon ECR
+        - name: Login to Amazon ECR
           id: login-ecr
           uses: aws-actions/amazon-ecr-login@v1
         
-        - name: Pull latest images
+        - name: Free Disk Space (Before Pulling Image)
           run: |
-           docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+            docker system prune -a --volumes -f
+        
+        - name: Pull latest image from ECR
+          run: |
+            docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
         
         - name: Stop and Remove Existing Container (if exists)
           run: |
@@ -90,14 +98,19 @@ jobs:
             else
               echo "No existing container found. Skipping removal."
             fi
+
+        - name: Free Disk Space (Before Running Container)
+          run: |
+            docker system prune -a --volumes -f
            
-        - name: Run Docker Image to serve users
+        - name: Run Docker Image to Serve Users
           run: |
-           docker run -d -p 8080:8080 --ipc="host" --name=networksecurity -e 'AWS_KEY_ACCESS_ID=${{ secrets.AWS_ACCESS_KEY_ID}}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY}}' -e 'AWS_REGION=${{ secrets.AWS_REGION}}' ${{secrets.AWS_ECR_LOGIN_URI}}/${{secrets.ECR_REPOSITORY_NAME}}:latest
+            docker run -d -p 8080:8080 --ipc="host" --name=networksecurity \
+              -e 'AWS_KEY_ACCESS_ID=${{ secrets.AWS_ACCESS_KEY_ID}}' \
+              -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY}}' \
+              -e 'AWS_REGION=${{ secrets.AWS_REGION}}' \
+              ${{secrets.AWS_ECR_LOGIN_URI}}/${{secrets.ECR_REPOSITORY_NAME}}:latest
         
-        - name: Clean previous images and containers
+        - name: Clean Previous Images and Containers
           run: |
-           docker system prune -f   
-
-
-
+            docker system prune -a --volumes -f
